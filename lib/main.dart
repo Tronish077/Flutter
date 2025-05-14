@@ -46,6 +46,7 @@ class _HomeState extends State<Home> {
    }
  ];
 
+ //Set Bg and cloudImg
  void setCloudImg(arr){
       setState(() {
         bgName = arr[1];
@@ -53,51 +54,70 @@ class _HomeState extends State<Home> {
       });
  }
 
+ //Get weather emoji 🔥
  void getWeatherEmoji(dynamic id) {
    int weatherId = id is String ? int.parse(id) : id;
 
    if (weatherId >= 200 && weatherId < 300) {
      setCloudImg(["assets/thunderstorm-98541_1280.png", "assets/thunderstorm.jpg"]);
    } else if (weatherId >= 300 && weatherId < 400) {
-     setCloudImg(["assets/lighrvec.png", "assets/jjj.jpg"]);
+     setCloudImg(["assets/lighrVec.png", "assets/jjj.jpg"]);
    } else if (weatherId >= 500 && weatherId < 600) {
-     setCloudImg(["assets/lighrvec.png", "assets/rainnsun.jpg"]);
-   } else if (weatherId >= 600 && weatherId < 700) {
+     setCloudImg(["assets/lighrVec.png", "assets/rainnsun.jpg"]);
+   } else if ((weatherId >= 600 && weatherId < 700) || receivedData.temp <= 0) {
+     // temp is in Kelvin, 273.15 = 0°C
      setCloudImg(["assets/snowvec.png", "assets/snowwy.jpg"]);
    } else if (weatherId >= 700 && weatherId < 800) {
-     setCloudImg(["assets/cloudvec.png", "assets/rainclouds.jpg"]);
+     setCloudImg(["assets/cloudvec.png", "assets/jjj.jpg"]);
    } else if (weatherId == 800) {
      setCloudImg(["assets/sunvec.png", "assets/sunny.jpg"]);
    } else if (weatherId > 800 && weatherId <= 804) {
-     setCloudImg(["assets/sunvec.png", "assets/sunny.jpg"]);
+     setCloudImg(["assets/cloudvec.png", "assets/rainnsun.jpg"]);
    } else {
      setCloudImg(["assets/sunvec.png", "assets/sunny.jpg"]);
    }
- }
 
+ }
 
  //Editing Controller
  TextEditingController Search = TextEditingController();
  String searchPlace = "";
+
+ void showLoadingDialog(BuildContext context){
+   showDialog(context: context,
+       barrierDismissible: false,
+       builder: (BuildContext context){
+          return AlertDialog(
+              elevation: 5,
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10)
+            ),
+            content: Row(
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(width: 40),
+                Text("Getting Weather Data ... ")
+              ],
+            ),
+          );
+       });
+ }
 
  //GetWeather Data
  Future getWeatherData(value) async{
    var apiQuery = Uri.parse("https://api.openweathermap.org/data/2.5/weather?q=$value&appid=$apiKey");
    var apiFetch = await http.get(apiQuery);
    var data = json.decode(apiFetch.body);
+
+   if(data['cod'] != 404){
    setState(() {
      receivedData = WeatherData.fromJson(data);
      getWeatherEmoji(receivedData.weatherId);
      Search.text = "";
    });
- }
-
- Future getFlag(code) async{
-   Uri flagUrl = Uri.parse('https://flagsapi.com/:$code/:style/:64.png');
-   dynamic flagData = await http.get(flagUrl);
-   setState(() {
-     FlagPic = flagData;
-   });
+   }
+       return data;
  }
 
   @override
@@ -149,10 +169,64 @@ class _HomeState extends State<Home> {
                                 ),
                               ),
                               onSubmitted: (value) async{
-                                try {
-                                  await getWeatherData(value);
-                                }catch(e){
-                                  print(e);
+                                if (value.isEmpty){
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                          "Please Enter A valid location !!",
+                                        style: TextStyle(color: Colors.white),
+                                      ),
+                                      backgroundColor: Colors.red,
+                                      duration: Duration(seconds: 3),
+                                      behavior: SnackBarBehavior.floating,
+                                    )
+                                  );
+                                }
+                                else{
+                                  try {
+                                    showLoadingDialog(context);
+                                    var weathVAl = await getWeatherData(value);
+                                    Navigator.pop(context);
+
+                                    if(weathVAl['cod'] == 400){
+                                      Navigator.pop(context);
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                              content: Row(
+                                            children: [
+                                              Icon(Icons.error,color: Colors.white),
+                                              Text(
+                                                  "Location Not Found",
+                                                  style: TextStyle(
+                                                      color:Colors.white
+                                                  )
+                                              ),
+                                            ],
+                                          ),
+                                          behavior: SnackBarBehavior.floating,)
+                                      );
+                                    }
+                                  }catch(e){
+                                    Navigator.pop(context);
+                                    print(e);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          backgroundColor: Colors.red,
+                                          content: Row(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Icon(Icons.error,color: Colors.white),
+                                              SizedBox(width: 15),
+                                              Text("Location Not Found",
+                                                  style: TextStyle(color: Colors.white,
+                                                      fontWeight: FontWeight.bold )
+                                              ),
+                                            ],
+                                          ),
+                                          behavior: SnackBarBehavior.floating,
+                                        )
+                                    );
+                                  }
                                 }
                               },
                               textAlign: TextAlign.center,
