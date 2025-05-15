@@ -30,18 +30,19 @@ class _HomeState extends State<Home> {
  //Elements List
  List elementList = [
    {"name":"Wind",
-     "link":"https://img.icons8.com/?size=100&id=31842&format=png&color=FFFFFF",
+     "link":"assets/defaultWind.png",
      "measure":"- m/s"},
    {
      "name":"Humidity",
-     "link":"https://img.icons8.com/?size=100&id=8189&format=png&color=FFFFFF",
+     "link":"assets/defaultHumid.png",
      "measure":" - %"
    },
    { "name":"Pressure",
-     "link":"https://img.icons8.com/?size=100&id=3129&format=png&color=FFFFFF",
+     "link":"assets/defaultPress.png",
      "measure":" - hpa"
-   },{ "name":"Sea-Level",
-     "link":"https://img.icons8.com/?size=100&id=101368&format=png&color=FFFFFF",
+   },
+   { "name":"Sea-Level",
+     "link":"assets/defaultSea.png",
      "measure":" - hPa"
    }
  ];
@@ -106,7 +107,7 @@ class _HomeState extends State<Home> {
 
  //GetWeather Data
  Future getWeatherData(value) async{
-   var apiQuery = Uri.parse("https://api.openweathermap.org/data/2.5/weather?q=$value&appid=$apiKey");
+   var apiQuery = Uri.parse("https://api.openweathermap.org/data/2.5/weather?q=${value.trim()}&appid=$apiKey");
    var apiFetch = await http.get(apiQuery);
    var data = json.decode(apiFetch.body);
 
@@ -118,6 +119,69 @@ class _HomeState extends State<Home> {
    });
    }
        return data;
+ }
+
+ evaluateSearch(value,context)async{
+   if (value.isEmpty){
+     ScaffoldMessenger.of(context).showSnackBar(
+         SnackBar(
+           content: Text(
+             "Please Enter A valid location !!",
+             style: TextStyle(color: Colors.white),
+           ),
+           backgroundColor: Colors.red,
+           duration: Duration(seconds: 2),
+           behavior: SnackBarBehavior.floating,
+         )
+     );
+   }
+   else{
+     try {
+       print(value);
+       showLoadingDialog(context);
+       var weathVAl = await getWeatherData(value);
+       Navigator.pop(context);
+
+       if(weathVAl['cod'] == 400){
+         Navigator.pop(context);
+         ScaffoldMessenger.of(context).showSnackBar(
+             SnackBar(
+               content: Row(
+                 children: [
+                   Icon(Icons.error,color: Colors.white),
+                   Text(
+                       "Location Not Found",
+                       style: TextStyle(
+                           color:Colors.white
+                       )
+                   ),
+                 ],
+               ),
+               behavior: SnackBarBehavior.floating,)
+         );
+       }
+     }catch(e){
+       Navigator.pop(context);
+       print(e);
+       ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(
+             backgroundColor: Colors.red,
+             content: Row(
+               mainAxisAlignment: MainAxisAlignment.center,
+               children: [
+                 Icon(Icons.error,color: Colors.white),
+                 SizedBox(width: 15),
+                 Text("Location Not Found",
+                     style: TextStyle(color: Colors.white,
+                         fontWeight: FontWeight.bold )
+                 ),
+               ],
+             ),
+             behavior: SnackBarBehavior.floating,
+           )
+       );
+     }
+   }
  }
 
   @override
@@ -133,7 +197,7 @@ class _HomeState extends State<Home> {
               decoration: BoxDecoration(
                 image: DecorationImage(
                   image: receivedData != null && receivedData is WeatherData && bgName != "" ?
-                  AssetImage(bgName) : NetworkImage('https://images.pexels.com/photos/2310642/pexels-photo-2310642.jpeg?auto=compress&cs=tinysrgb&w=600'),
+                  AssetImage(bgName) : AssetImage('assets/defaultBG.jpeg'),
                   fit: BoxFit.cover
                 )
               ),
@@ -154,82 +218,55 @@ class _HomeState extends State<Home> {
                                 color: const Color.fromARGB(61, 205, 211, 216),
                                 borderRadius: BorderRadius.circular(6)
                             ),
-                            child: TextField(
-                              controller: Search,
-                              keyboardType: TextInputType.webSearch,
-                              style: TextStyle(color: Colors.white),
-                              decoration: InputDecoration(
-                                hintText: "Search Your Location",
-                                hintStyle: TextStyle(color: Colors.white60),
-                                enabledBorder: UnderlineInputBorder(
-                                    borderSide: BorderSide.none
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                    borderSide: BorderSide(color:Colors.white)
-                                ),
-                              ),
-                              onSubmitted: (value) async{
-                                if (value.isEmpty){
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                          "Please Enter A valid location !!",
-                                        style: TextStyle(color: Colors.white),
-                                      ),
-                                      backgroundColor: Colors.red,
-                                      duration: Duration(seconds: 3),
-                                      behavior: SnackBarBehavior.floating,
-                                    )
-                                  );
-                                }
-                                else{
-                                  try {
-                                    showLoadingDialog(context);
-                                    var weathVAl = await getWeatherData(value);
-                                    Navigator.pop(context);
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Expanded(
+                                  child: TextField(
+                                    controller: Search,
+                                    keyboardType: TextInputType.webSearch,
+                                    style: TextStyle(color: Colors.white),
+                                    decoration: InputDecoration(
+                                      hintText: "Search Your Location",
+                                      hintStyle: TextStyle(color: Colors.white60),
 
-                                    if(weathVAl['cod'] == 400){
-                                      Navigator.pop(context);
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(
-                                              content: Row(
-                                            children: [
-                                              Icon(Icons.error,color: Colors.white),
-                                              Text(
-                                                  "Location Not Found",
-                                                  style: TextStyle(
-                                                      color:Colors.white
-                                                  )
-                                              ),
-                                            ],
-                                          ),
-                                          behavior: SnackBarBehavior.floating,)
-                                      );
-                                    }
-                                  }catch(e){
-                                    Navigator.pop(context);
-                                    print(e);
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                          backgroundColor: Colors.red,
-                                          content: Row(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                              Icon(Icons.error,color: Colors.white),
-                                              SizedBox(width: 15),
-                                              Text("Location Not Found",
-                                                  style: TextStyle(color: Colors.white,
-                                                      fontWeight: FontWeight.bold )
-                                              ),
-                                            ],
-                                          ),
-                                          behavior: SnackBarBehavior.floating,
-                                        )
-                                    );
-                                  }
-                                }
-                              },
-                              textAlign: TextAlign.center,
+                                      enabledBorder: UnderlineInputBorder(
+                                          borderSide: BorderSide.none
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                         borderSide : BorderSide(color:Colors.white),
+
+                                      ),
+                                    ),
+                                    onSubmitted: (value) async{
+                                      setState(() {
+                                        searchPlace = Search.text;
+                                      });
+                                      await evaluateSearch(value, context);
+                                    },
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                                IconButton(
+                                  onPressed: () async{
+                                    setState(() {
+                                      searchPlace = Search.text;
+                                    });
+                                      await evaluateSearch(searchPlace, context);
+                                },
+                                  icon: Container(
+                                    padding: EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(8),
+                                      color: const Color.fromARGB(63, 255, 255, 255),
+                                    ),
+                                    child: Icon(
+                                        Icons.find_replace_outlined,
+                                        color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                           SizedBox(height:20),
@@ -241,7 +278,7 @@ class _HomeState extends State<Home> {
                                 children: [
                                   receivedData != null && receivedData is WeatherData ?
                                   Image.network("https://flagsapi.com/${receivedData.country}/flat/32.png")
-                                      : Image.network('https://img.icons8.com/?size=100&id=94733&format=png&color=FFFFFF',width: 20,height: 20,),
+                                      : Image.asset('assets/defaultFlag.png',width: 20,height: 20,),
                                   Text(receivedData != null && receivedData is WeatherData ?
                                   "${receivedData.city}, ${receivedData.country}" : "No Location Set !!!"
                                     ,style: TextStyle(color:Colors.white,fontSize: 28),),
@@ -260,8 +297,8 @@ class _HomeState extends State<Home> {
                                 receivedData != null && receivedData is WeatherData && cloudSrc != "" ?
                                     Image.asset(cloudSrc,
                                       height: 120,
-                                      width: 120,) : Image.network(""
-                                    "https://img.icons8.com/?size=100&id=6HY5Tg14h2H5&format=png&color=FFFFFF",
+                                      width: 120,) : Image.asset(
+                                  "assets/defaultCloud.png",
                                   height: 90,
                                   width: 90,
                                 ),
@@ -278,7 +315,7 @@ class _HomeState extends State<Home> {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Image.network('https://img.icons8.com/?size=100&id=EwjH7MTdr9C5&format=png&color=FFFFFF',
+                                  Image.asset('assets/defaultTemp.png',
                                     height: 20,width: 20,),
                                   SizedBox(height: 10),
                                   Text(receivedData != null && receivedData is WeatherData ?
@@ -396,7 +433,7 @@ Widget tableEntries({eleName,iconLink,measurement}){
         Column(
           mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Image.network(
+              Image.asset(
                   '$iconLink',
                   height: 38,width: 38
               ),SizedBox(height: 8,),
